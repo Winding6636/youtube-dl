@@ -474,7 +474,7 @@ class NiconicoSMIE(InfoExtractor):
     IE_NAME = 'niconico_sm'
     IE_DESC = 'ニコニコ動画'
 
-    _VALID_URL = r'(?P<id>(?:[a-z]{2})?[0-9]+)'
+    _VALID_URL = r'(?P<id>sm?[0-9]+)'
     _NETRC_MACHINE = 'niconico'
 
     def _real_initialize(self):
