@@ -183,6 +183,7 @@
  - **ComedyCentralShortname**
  - **ComedyCentralTV**
  - **CondeNast**: Condé Nast media group: Allure, Architectural Digest, Ars Technica, Bon Appétit, Brides, Condé Nast, Condé Nast Traveler, Details, Epicurious, GQ, Glamour, Golf Digest, SELF, Teen Vogue, The New Yorker, Vanity Fair, Vogue, W Magazine, WIRED
+ - **CONtv**
  - **Corus**
  - **Coub**
  - **Cracked**
@@ -695,7 +696,6 @@
  - **PornoXO**
  - **PornTube**
  - **PressTV**
- - **PromptFile**
  - **prosiebensat1**: ProSiebenSat.1 Digital
  - **puhutv**
  - **puhutv:serie**
@@ -786,7 +786,6 @@
  - **Seeker**
  - **SenateISVP**
  - **SendtoNews**
- - **ServingSys**
  - **Servus**
  - **Sexu**
  - **SeznamZpravy**
@@ -885,6 +884,7 @@
  - **TeleQuebec**
  - **TeleQuebecEmission**
  - **TeleQuebecLive**
+ - **TeleQuebecSquat**
  - **TeleTask**
  - **Telewebion**
  - **TennisTV**
@@ -992,7 +992,6 @@
  - **VeeHD**
  - **Veoh**
  - **verystream**
- - **Vessel**
  - **Vesti**: Вести.Ru
  - **Vevo**
  - **VevoPlaylist**
@@ -1007,7 +1006,6 @@
  - **Viddler**
  - **Videa**
  - **video.google:search**: Google Video search
- - **video.mit.edu**
  - **VideoDetective**
  - **videofy.me**
  - **videomore**
@@ -1025,7 +1023,6 @@
  - **vier:videos**
  - **ViewLift**
  - **ViewLiftEmbed**
- - **Viewster**
  - **Viidea**
  - **viki**
  - **viki:channel**
@@ -1091,7 +1088,6 @@
  - **Weibo**
  - **WeiboMobile**
  - **WeiqiTV**: WQTV
- - **Wimp**
  - **Wistia**
  - **wnl**: npo.nl, ntr.nl, omroepwnl.nl, zapp.nl and npo3.nl
  - **WorldStarHipHop**
@@ -1100,7 +1096,7 @@
  - **WWE**
  - **XBef**
  - **XboxClips**
- - **XFileShare**: XFileShare based sites: DaClips, FileHoot, GorillaVid, MovPod, PowerWatch, Rapidvideo.ws, TheVideoBee, Vidto, Streamin.To, XVIDSTAGE, Vid ABC, VidBom, vidlo, RapidVideo.TV, FastVideo.me
+ - **XFileShare**: XFileShare based sites: ClipWatching, GoUnlimited, GoVid, HolaVid, Streamty, TheVideoBee, Uqload, VidBom, vidlo, VidLocker, VidShare, VUp, XVideoSharing
  - **XHamster**
  - **XHamsterEmbed**
  - **XHamsterUser**
