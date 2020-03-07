@@ -470,11 +470,8 @@ class NiconicoPlaylistIE(InfoExtractor):
         }
 
 class NiconicoSMIE(InfoExtractor):
-    IE_NAME = 'nicoshort:sm'
-    
     _VALID_URL = r'(?P<id>^(sm|nm|so)[0-9]+)'
     #_VALID_URL = r'(?P<id>(?:^(sm|nm){2})?[0-9]+)'
-    _NETRC_MACHINE = 'niconico'
 
     def _real_initialize(self):
         self._login()
