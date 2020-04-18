@@ -10,6 +10,7 @@ import random
 import re
 import time
 import traceback
+import subprocess
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..jsinterp import JSInterpreter
@@ -29,7 +30,6 @@ from ..compat import (
 from ..utils import (
     bool_or_none,
     clean_html,
-    dict_get,
     error_to_compat_str,
     extract_attributes,
     ExtractorError,
@@ -677,6 +677,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'youtube_include_dash_manifest': True,
                 'format': '141/bestaudio[ext=m4a]',
             },
+
+        },
+
+        # Same as above, but with bypass_429 enabled
+        {
+            'url': 'https://www.youtube.com/watch?v=IB3lcPjvWLA',
+            'info_dict': {
+                'id': 'IB3lcPjvWLA',
+                'ext': 'm4a',
+                'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
+                'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
+                'duration': 244,
+                'uploader': 'AfrojackVEVO',
+                'uploader_id': 'AfrojackVEVO',
+                'upload_date': '20131011',
+            },
+            'params': {
+                'youtube_bypass_429': True,
+
+            },
+
         },
         # JS player signature function name containing $
         {
@@ -1234,10 +1255,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         super(YoutubeIE, self).__init__(*args, **kwargs)
         self._player_cache = {}
 
+    def report_download_webpage(self, video_id):
+        """Report webpage download."""
+        if self._downloader.params.get('youtube_bypass_429', False):
+            self.to_screen('%s: Downloading webpage (using rate limiting)' % video_id)
+        else:
+            self.to_screen('%s: Downloading webpage' % video_id)
+
     def report_video_info_webpage_download(self, video_id):
         """Report attempt to download video info webpage."""
-        self.to_screen('%s: Downloading video info webpage' % video_id)
-
+        if self._downloader.params.get('youtube_bypass_429', False):
+            self.to_screen('%s: Downloading video info webpage (using rate limiting)' % video_id)
+        else:
+            self.to_screen('%s: Downloading video info webpage' % video_id)
     def report_information_extraction(self, video_id):
         """Report attempt to extract video information."""
         self.to_screen('%s: Extracting video information' % video_id)
@@ -1253,6 +1283,30 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
     def _signature_cache_id(self, example_sig):
         """ Return a string representation of a signature """
         return '.'.join(compat_str(len(part)) for part in example_sig.split('.'))
+
+    def _rate_limit_download(self, url, video_id, note=None, **kwargs):
+
+        if not self._downloader.params.get('youtube_bypass_429', False):
+            return self._download_webpage(url, video_id, note=note, **kwargs)
+
+        if note is not None:
+            if note is not False:
+                if video_id is None:
+                    self.to_screen('%s (using rate limiting)' % (note,))
+                else:
+                    self.to_screen('%s: %s (using rate limiting)' % (video_id, note))
+        else:
+            self.report_download_webpage(video_id)
+
+        try:
+            return subprocess.run([self._downloader.params.get('wget_location', 'wget'), '-q', '--limit-rate', str(self._downloader.params.get('wget_limit_rate', 8191)), '-O', '-', url],
+                              check=True, stdout=subprocess.PIPE).stdout.decode(encoding='UTF-8')
+        except subprocess.CalledProcessError as er:
+            # TODO: Report errors better
+            raise ExtractorError(
+                'wget said: %s' % er, expected=True, video_id=video_id)
+        except FileNotFoundError as er:
+            raise FileNotFoundError("wget not found ({})".format(er))
 
     def _extract_signature_function(self, video_id, player_url, example_sig):
         id_m = re.match(
@@ -1679,7 +1733,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
 
         # Get video webpage
         url = proto + '://www.youtube.com/watch?v=%s&gl=US&hl=en&has_verified=1&bpctr=9999999999' % video_id
-        video_webpage = self._download_webpage(url, video_id)
+        video_webpage = self._rate_limit_download(url, video_id)
 
         # Attempt to extract SWF player URL
         mobj = re.search(r'swfConfig.*?"(https?:\\/\\/.*?watch.*?-.*?\.swf)"', video_webpage)
@@ -1708,9 +1762,6 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         def extract_view_count(v_info):
             return int_or_none(try_get(v_info, lambda x: x['view_count'][0]))
 
-        def extract_token(v_info):
-            return dict_get(v_info, ('account_playback_token', 'accountPlaybackToken', 'token'))
-
         def extract_player_response(player_response, video_id):
             pl_response = str_or_none(player_response)
             if not pl_response:
@@ -1723,6 +1774,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         player_response = {}
 
         # Get video info
+        video_info = {}
         embed_webpage = None
         if re.search(r'player-age-gate-content">', video_webpage) is not None:
             age_gate = True
@@ -1737,19 +1789,21 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                     r'"sts"\s*:\s*(\d+)', embed_webpage, 'sts', default=''),
             })
             video_info_url = proto + '://www.youtube.com/get_video_info?' + data
-            video_info_webpage = self._download_webpage(
-                video_info_url, video_id,
-                note='Refetching age-gated info webpage',
-                errnote='unable to download video info webpage')
-            video_info = compat_parse_qs(video_info_webpage)
-            pl_response = video_info.get('player_response', [None])[0]
-            player_response = extract_player_response(pl_response, video_id)
-            add_dash_mpd(video_info)
-            view_count = extract_view_count(video_info)
+            try:
+                video_info_webpage = self._rate_limit_download(
+                    video_info_url, video_id,
+                    note='Refetching age-gated info webpage',
+                    )
+            except ExtractorError:
+                video_info_webpage = None
+            if video_info_webpage:
+                video_info = compat_parse_qs(video_info_webpage)
+                pl_response = video_info.get('player_response', [None])[0]
+                player_response = extract_player_response(pl_response, video_id)
+                add_dash_mpd(video_info)
+                view_count = extract_view_count(video_info)
         else:
             age_gate = False
-            video_info = None
-            sts = None
             # Try looking directly into the video webpage
             ytplayer_config = self._get_ytplayer_config(video_id, video_webpage)
             if ytplayer_config:
@@ -1766,61 +1820,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         args['ypc_vid'], YoutubeIE.ie_key(), video_id=args['ypc_vid'])
                 if args.get('livestream') == '1' or args.get('live_playback') == 1:
                     is_live = True
-                sts = ytplayer_config.get('sts')
                 if not player_response:
                     player_response = extract_player_response(args.get('player_response'), video_id)
             if not video_info or self._downloader.params.get('youtube_include_dash_manifest', True):
                 add_dash_mpd_pr(player_response)
-                # We also try looking in get_video_info since it may contain different dashmpd
-                # URL that points to a DASH manifest with possibly different itag set (some itags
-                # are missing from DASH manifest pointed by webpage's dashmpd, some - from DASH
-                # manifest pointed by get_video_info's dashmpd).
-                # The general idea is to take a union of itags of both DASH manifests (for example
-                # video with such 'manifest behavior' see https://github.com/ytdl-org/youtube-dl/issues/6093)
-                self.report_video_info_webpage_download(video_id)
-                for el in ('embedded', 'detailpage', 'vevo', ''):
-                    query = {
-                        'video_id': video_id,
-                        'ps': 'default',
-                        'eurl': '',
-                        'gl': 'US',
-                        'hl': 'en',
-                    }
-                    if el:
-                        query['el'] = el
-                    if sts:
-                        query['sts'] = sts
-                    video_info_webpage = self._download_webpage(
-                        '%s://www.youtube.com/get_video_info' % proto,
-                        video_id, note=False,
-                        errnote='unable to download video info webpage',
-                        fatal=False, query=query)
-                    if not video_info_webpage:
-                        continue
-                    get_video_info = compat_parse_qs(video_info_webpage)
-                    if not player_response:
-                        pl_response = get_video_info.get('player_response', [None])[0]
-                        player_response = extract_player_response(pl_response, video_id)
-                    add_dash_mpd(get_video_info)
-                    if view_count is None:
-                        view_count = extract_view_count(get_video_info)
-                    if not video_info:
-                        video_info = get_video_info
-                    get_token = extract_token(get_video_info)
-                    if get_token:
-                        # Different get_video_info requests may report different results, e.g.
-                        # some may report video unavailability, but some may serve it without
-                        # any complaint (see https://github.com/ytdl-org/youtube-dl/issues/7362,
-                        # the original webpage as well as el=info and el=embedded get_video_info
-                        # requests report video unavailability due to geo restriction while
-                        # el=detailpage succeeds and returns valid data). This is probably
-                        # due to YouTube measures against IP ranges of hosting providers.
-                        # Working around by preferring the first succeeded video_info containing
-                        # the token if no such video_info yet was found.
-                        token = extract_token(video_info)
-                        if not token:
-                            video_info = get_video_info
-                        break
 
         def extract_unavailable_message():
             messages = []
@@ -1833,12 +1836,15 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             if messages:
                 return '\n'.join(messages)
 
-        if not video_info:
+        if not video_info and not player_response:
             unavailable_message = extract_unavailable_message()
             if not unavailable_message:
                 unavailable_message = 'Unable to extract video data'
             raise ExtractorError(
                 'YouTube said: %s' % unavailable_message, expected=True, video_id=video_id)
+
+        if not isinstance(video_info, dict):
+            video_info = {}
 
         video_details = try_get(
             player_response, lambda x: x['videoDetails'], dict) or {}
@@ -1889,15 +1895,26 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         # fields may contain comma as well (see
                         # https://github.com/ytdl-org/youtube-dl/issues/8536)
                         feed_data = compat_parse_qs(compat_urllib_parse_unquote_plus(feed))
+
+                        def feed_entry(name):
+                            return try_get(feed_data, lambda x: x[name][0], compat_str)
+
+                        feed_id = feed_entry('id')
+                        if not feed_id:
+                            continue
+                        feed_title = feed_entry('title')
+                        title = video_title
+                        if feed_title:
+                            title += ' (%s)' % feed_title
                         entries.append({
                             '_type': 'url_transparent',
                             'ie_key': 'Youtube',
                             'url': smuggle_url(
                                 '%s://www.youtube.com/watch?v=%s' % (proto, feed_data['id'][0]),
                                 {'force_singlefeed': True}),
-                            'title': '%s (%s)' % (video_title, feed_data['title'][0]),
+                            'title': title,
                         })
-                        feed_ids.append(feed_data['id'][0])
+                        feed_ids.append(feed_id)
                     self.to_screen(
                         'Downloading multifeed video (%s) - add --no-playlist to just download video %s'
                         % (', '.join(feed_ids), video_id))
@@ -1968,7 +1985,7 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 }
 
             for fmt in streaming_formats:
-                if fmt.get('drm_families'):
+                if fmt.get('drmFamilies') or fmt.get('drm_families'):
                     continue
                 url = url_or_none(fmt.get('url'))
 
@@ -2392,30 +2409,23 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                         f['stretched_ratio'] = ratio
 
         if not formats:
-            token = extract_token(video_info)
-            if not token:
-                if 'reason' in video_info:
-                    if 'The uploader has not made this video available in your country.' in video_info['reason']:
-                        regions_allowed = self._html_search_meta(
-                            'regionsAllowed', video_webpage, default=None)
-                        countries = regions_allowed.split(',') if regions_allowed else None
-                        self.raise_geo_restricted(
-                            msg=video_info['reason'][0], countries=countries)
-                    reason = video_info['reason'][0]
-                    if 'Invalid parameters' in reason:
-                        unavailable_message = extract_unavailable_message()
-                        if unavailable_message:
-                            reason = unavailable_message
-                    raise ExtractorError(
-                        'YouTube said: %s' % reason,
-                        expected=True, video_id=video_id)
-                else:
-                    raise ExtractorError(
-                        '"token" parameter not in video info for unknown reason',
-                        video_id=video_id)
-
-        if not formats and (video_info.get('license_info') or try_get(player_response, lambda x: x['streamingData']['licenseInfos'])):
-            raise ExtractorError('This video is DRM protected.', expected=True)
+            if 'reason' in video_info:
+                if 'The uploader has not made this video available in your country.' in video_info['reason']:
+                    regions_allowed = self._html_search_meta(
+                        'regionsAllowed', video_webpage, default=None)
+                    countries = regions_allowed.split(',') if regions_allowed else None
+                    self.raise_geo_restricted(
+                        msg=video_info['reason'][0], countries=countries)
+                reason = video_info['reason'][0]
+                if 'Invalid parameters' in reason:
+                    unavailable_message = extract_unavailable_message()
+                    if unavailable_message:
+                        reason = unavailable_message
+                raise ExtractorError(
+                    'YouTube said: %s' % reason,
+                    expected=True, video_id=video_id)
+            if video_info.get('license_info') or try_get(player_response, lambda x: x['streamingData']['licenseInfos']):
+                raise ExtractorError('This video is DRM protected.', expected=True)
 
         self._sort_formats(formats)
 

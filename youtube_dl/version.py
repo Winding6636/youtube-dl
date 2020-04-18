@@ -1,3 +1,3 @@
 from __future__ import unicode_literals
 
-__version__ = '2020.03.06_modified:tsnfu.const'
+__version__ = '2020.03.24_modified:tsnfu.const'
