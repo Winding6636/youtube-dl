@@ -1,15 +1,3 @@
-diff --git a/docs/supportedsites.md b/docs/supportedsites.md
-index 35c1050e5..20cbafe78 100644
---- a/docs/supportedsites.md
-+++ b/docs/supportedsites.md
-@@ -571,6 +571,7 @@
-  - **nicknight**
-  - **niconico**: ニコニコ動画
-  - **NiconicoPlaylist**
-+ - **NiconicoShort**
-  - **Nintendo**
-  - **njoy**: N-JOY
-  - **njoy:embed**
 diff --git a/youtube_dl/extractor/extractors.py b/youtube_dl/extractor/extractors.py
 index 4b3092028..67a6a920d 100644
 --- a/youtube_dl/extractor/extractors.py
