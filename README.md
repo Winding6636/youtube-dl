@@ -1,5 +1,7 @@
 
-### niconico url "sm|nm|so" patch
+### niconico url "(sm|nm|so)" patch
+./youtube-dl sm6666
+    wget [https://raw.githubusercontent.com/Winding6636/youtube-dl/nico_short/niconico_sm.patch](https://raw.githubusercontent.com/Winding6636/youtube-dl/nico_short/niconico_sm.patch)
     patch -p1 < niconico.sm.patch
 
 
