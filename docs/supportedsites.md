@@ -571,6 +571,7 @@
  - **nicknight**
  - **niconico**: ニコニコ動画
  - **NiconicoPlaylist**
+ - **NiconicoShort**
  - **Nintendo**
  - **njoy**: N-JOY
  - **njoy:embed**

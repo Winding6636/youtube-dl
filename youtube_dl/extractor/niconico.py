@@ -468,3 +468,8 @@ class NiconicoPlaylistIE(InfoExtractor):
             'id': list_id,
             'entries': entries,
         }
+
+
+class NiconicoShortIE(NiconicoIE):
+    _VALID_URL = r'(?P<id>^(sm|nm|so)[0-9]+)'
+pass
