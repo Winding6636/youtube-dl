@@ -10,6 +10,7 @@ import random
 import re
 import time
 import traceback
+import subprocess
 
 from .common import InfoExtractor, SearchInfoExtractor
 from ..jsinterp import JSInterpreter
@@ -694,6 +695,27 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
                 'youtube_include_dash_manifest': True,
                 'format': '141/bestaudio[ext=m4a]',
             },
+
+        },
+
+        # Same as above, but with bypass_429 enabled
+        {
+            'url': 'https://www.youtube.com/watch?v=IB3lcPjvWLA',
+            'info_dict': {
+                'id': 'IB3lcPjvWLA',
+                'ext': 'm4a',
+                'title': 'Afrojack, Spree Wilson - The Spark (Official Music Video) ft. Spree Wilson',
+                'description': 'md5:8f5e2b82460520b619ccac1f509d43bf',
+                'duration': 244,
+                'uploader': 'AfrojackVEVO',
+                'uploader_id': 'AfrojackVEVO',
+                'upload_date': '20131011',
+            },
+            'params': {
+                'youtube_bypass_429': True,
+
+            },
+
         },
         # JS player signature function name containing $
         {
@@ -1271,10 +1293,19 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
         super(YoutubeIE, self).__init__(*args, **kwargs)
         self._player_cache = {}
 
+    def report_download_webpage(self, video_id):
+        """Report webpage download."""
+        if self._downloader.params.get('youtube_bypass_429', False):
+            self.to_screen('%s: Downloading webpage (using rate limiting)' % video_id)
+        else:
+            self.to_screen('%s: Downloading webpage' % video_id)
+
     def report_video_info_webpage_download(self, video_id):
         """Report attempt to download video info webpage."""
-        self.to_screen('%s: Downloading video info webpage' % video_id)
-
+        if self._downloader.params.get('youtube_bypass_429', False):
+            self.to_screen('%s: Downloading video info webpage (using rate limiting)' % video_id)
+        else:
+            self.to_screen('%s: Downloading video info webpage' % video_id)
     def report_information_extraction(self, video_id):
         """Report attempt to extract video information."""
         self.to_screen('%s: Extracting video information' % video_id)
@@ -1839,10 +1870,10 @@ class YoutubeIE(YoutubeBaseInfoExtractor):
             })
             video_info_url = proto + '://www.youtube.com/get_video_info?' + data
             try:
-                video_info_webpage = self._download_webpage(
+                video_info_webpage = self._rate_limit_download(
                     video_info_url, video_id,
                     note='Refetching age-gated info webpage',
-                    errnote='unable to download video info webpage')
+                    )
             except ExtractorError:
                 video_info_webpage = None
             if video_info_webpage:
