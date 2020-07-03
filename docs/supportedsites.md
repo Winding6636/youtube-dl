@@ -572,6 +572,7 @@
  - **niconico**: ニコニコ動画
  - **niconico:sm**
  - **NiconicoPlaylist**
+ - **NiconicoShort**
  - **Nintendo**
  - **njoy**: N-JOY
  - **njoy:embed**
