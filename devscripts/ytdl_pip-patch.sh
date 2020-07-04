@@ -14,6 +14,7 @@ patch -p1 -d $_ytdlpath_ < ./niconico_sm.patch
 _version_=`youtube-dl --version`
 sed -i -e 's/"version": ".*"/"version": "'$_version_'"/g' ''$_ytdlpath_'/youtube_dl-2020.6.16.1.dist-info/metadata.json'
 pip list | grep youtube-dl
+echo $_version_
 #clean
 rm ./niconico_sm.patch
 echo :-:END:-:
