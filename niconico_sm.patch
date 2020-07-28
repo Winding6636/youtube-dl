@@ -25,12 +25,14 @@ index eb07ca776..59fd4710a 100644
 +    _VALID_URL = r'(?P<id>^(sm|nm|so)[0-9]+)'
 +pass
 \ No newline at end of file
-diff --git a/youtube_dl/version.py b/youtube_dl/version.py
-index 6b88eb38c..f05305e5c 100644
---- a/youtube_dl/version.py
-+++ b/youtube_dl/version.py
-@@ -1,3 +1,4 @@
- from __future__ import unicode_literals
- 
- __version__ = '2020.06.16.1'
-+__version__ = __version__ + '_modified:tsnfu.const'
+sed -i -e '$a __version__ = __version__ + " _nicosm-patched"\n' ./youtube_dl/version.py
+
+#diff --git a/youtube_dl/version.py b/youtube_dl/version.py
+#index 6b88eb38c..f05305e5c 100644
+#--- a/youtube_dl/version.py
+#+++ b/youtube_dl/version.py
+#@@ -1,3 +1,4 @@
+# from __future__ import unicode_literals
+# 
+# __version__ = '2020.06.16.1'
+#+__version__ = __version__ + '_modified:tsnfu.const'

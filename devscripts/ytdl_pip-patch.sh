@@ -5,6 +5,7 @@
 
 set -Ce
 
+echo :-: niconico short_sm patch... :-:
 #Download
 wget -O ./niconico_sm.patch https://raw.githubusercontent.com/Winding6636/youtube-dl/nico_short/niconico_sm.patch
 #Patched
@@ -17,4 +18,4 @@ pip list | grep youtube-dl
 echo $_version_
 #clean
 rm ./niconico_sm.patch
-echo :-:END:-:
+echo :-: niconico short_sm patch END:-:
